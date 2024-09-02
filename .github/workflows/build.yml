@@ -14,6 +14,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
+      with:
+        persist-credentials: false # Prevents using the GITHUB_TOKEN for the checkout
 
     - name: Set up .NET
       uses: actions/setup-dotnet@v1
@@ -57,7 +59,6 @@ jobs:
         git add build_info.txt
         git commit -m "Update build info to ${{ steps.build_info.outputs.build_number }}"
         git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
-
 
     - name: Build with version number
       run: dotnet build --configuration Release /p:Version=${{ steps.version.outputs.version }}
