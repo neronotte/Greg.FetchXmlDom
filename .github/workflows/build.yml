@@ -90,10 +90,11 @@ jobs:
       id: commit_messages
       run: |
         if (${{ steps.check_tags.outputs.has_tags }} -eq 'true') {
-          echo "::set-output name=messages::$(git log ${{ steps.prev_tag.outputs.tag }}..HEAD --pretty=format:'%s')"
+          $messages = git log ${{ steps.prev_tag.outputs.tag }}..HEAD --pretty=format:'%s' | Where-Object { $_ -notmatch '^\[skip ci\]' }
         } else {
-          echo "::set-output name=messages::$(git log --pretty=format:'%s')"
+          $messages = git log --pretty=format:'%s' | Where-Object { $_ -notmatch '^\[skip ci\]' }
         }
+        echo "::set-output name=messages::$($messages -join "`n")"
         
     - name: Create GitHub Release
       id: create_release
