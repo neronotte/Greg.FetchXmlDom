@@ -61,7 +61,7 @@ jobs:
         git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
 
     - name: Build with version number
-      run: dotnet build --configuration Release /p:Version=${{ steps.version.outputs.version }}
+      run: dotnet build --configuration Release /p:Version=${{ steps.build_info.outputs.version }} /p:NuGetVersion=${{ steps.build_info.outputs.version }}
 
     - name: Run tests
       run: dotnet test --no-build --verbosity normal
