@@ -74,12 +74,12 @@ jobs:
     - name: Check for tags
       id: check_tags
       run: |
-        if [ -z "$(git tag)" ]; then
+        if (-not (git tag)) {
           echo "No tags found"
           echo "::set-output name=has_tags::false"
-        else
+        } else {
           echo "::set-output name=has_tags::true"
-        fi
+        }
         
     - name: Get previous release tag
       id: prev_tag
@@ -89,11 +89,11 @@ jobs:
     - name: Get commit messages
       id: commit_messages
       run: |
-        if [ "${{ steps.check_tags.outputs.has_tags }}" == "true" ]; then
+        if (${{ steps.check_tags.outputs.has_tags }} -eq 'true') {
           echo "::set-output name=messages::$(git log ${{ steps.prev_tag.outputs.tag }}..HEAD --pretty=format:'%s')"
-        else
+        } else {
           echo "::set-output name=messages::$(git log --pretty=format:'%s')"
-        fi
+        }
         
     - name: Create GitHub Release
       uses: actions/create-release@v1
