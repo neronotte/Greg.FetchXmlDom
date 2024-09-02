@@ -69,7 +69,7 @@ jobs:
 
     - name: Find NuGet package
       id: find_package
-      run: echo "::set-output name=package::$(Get-ChildItem -Recurse -Filter *.nupkg | Select-Object -First 1).FullName"
+      run: echo "::set-output name=package::$(Get-ChildItem -Recurse -Filter *.nupkg | Select-Object -First 1)"
       
     - name: Check for tags
       id: check_tags
