@@ -1,0 +1,104 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: .NET Build
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '8.0.x' # Adjust the .NET version as needed
+
+    - name: Install dependencies
+      run: dotnet restore
+
+    - name: Read and update build number
+      id: build_info
+      run: |
+        $year = (Get-Date).Year
+        $month = (Get-Date).Month
+        $buildInfoFile = "build_info.txt"
+        if (Test-Path $buildInfoFile) {
+          $buildInfo = Get-Content $buildInfoFile | ConvertFrom-Json
+          $lastBuildMonth = $buildInfo.month
+          $buildNumber = $buildInfo.buildNumber
+        } else {
+          $lastBuildMonth = $null
+          $buildNumber = 0
+        }
+        if ($lastBuildMonth -ne $month) {
+          $buildNumber = 1
+        } else {
+          $buildNumber++
+        }
+        $buildInfo = @{
+          month = $month
+          buildNumber = $buildNumber
+        } | ConvertTo-Json
+        Set-Content $buildInfoFile $buildInfo
+        echo "::set-output name=build_number::$buildNumber"
+        echo "::set-output name=version::1.$year.$month.$buildNumber"
+
+    - name: Commit updated build info
+      run: |
+        git config --global user.name 'github-actions'
+        git config --global user.email 'github-actions@github.com'
+        git add build_info.txt
+        git commit -m "Update build info to ${{ steps.build_info.outputs.build_number }}"
+        git push origin main
+
+
+    - name: Build with version number
+      run: dotnet build --configuration Release /p:Version=${{ steps.version.outputs.version }}
+
+    - name: Run tests
+      run: dotnet test --no-build --verbosity normal
+
+    - name: Find NuGet package
+      id: find_package
+      run: echo "::set-output name=package::$(Get-ChildItem -Recurse -Filter *.nupkg | Select-Object -First 1).FullName"
+
+    - name: Get previous release tag
+      id: prev_tag
+      run: echo "::set-output name=tag::$(git describe --tags --abbrev=0 HEAD^)"
+
+    - name: Get commit messages
+      id: commit_messages
+      run: echo "::set-output name=messages::$(git log ${{ steps.prev_tag.outputs.tag }}..HEAD --pretty=format:'%s')"
+
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version.outputs.version }}
+        release_name: Release ${{ steps.version.outputs.version }}
+        body: |
+          Changes:
+          ${{ steps.commit_messages.outputs.messages }}
+        draft: false
+        prerelease: false
+
+    - name: Upload NuGet package to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ steps.find_package.outputs.package }}
+        asset_name: $(Split-Path -Leaf ${{ steps.find_package.outputs.package }})
+        asset_content_type: application/octet-stream
+  
+    - name: Publish to NuGet
+      run: dotnet nuget push ${{ steps.find_package.outputs.package }} -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
