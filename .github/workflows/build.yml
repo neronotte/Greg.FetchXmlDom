@@ -65,7 +65,7 @@ jobs:
       run: dotnet build --configuration Release /p:Version=${{ steps.build_info.outputs.version }} /p:NuGetVersion=${{ steps.build_info.outputs.version }}
 
     - name: Run tests
-      run: dotnet test --no-build --verbosity detailed
+      run: dotnet test --configuration Release --no-build --verbosity normal
 
     - name: Find NuGet package
       id: find_package
