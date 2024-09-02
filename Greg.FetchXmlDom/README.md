@@ -1,4 +1,4 @@
-# Greg.FetchXmlDom
+﻿# Greg.FetchXmlDom
 
 A simple library that provides an object-oriented way to create FetchXml expressions for PowerApps / Dynamics 365.
 

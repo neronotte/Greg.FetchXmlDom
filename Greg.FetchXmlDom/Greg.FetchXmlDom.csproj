@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net462</TargetFrameworks>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>Greg.FetchXmlDom</Title>
+    <Authors>_neronotte</Authors>
+    <PackageProjectUrl>https://github.com/neronotte/Greg.FetchXmlDom</PackageProjectUrl>
+    <Copyright>Copyright @ _neronotte</Copyright>
+    <RepositoryUrl>https://github.com/neronotte/Greg.FetchXmlDom</RepositoryUrl>
+    <PackageOutputPath>$(OutputPath)</PackageOutputPath>
+    <IncludeSymbols>False</IncludeSymbols>
+    <PackageIcon>Logo_80.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\Logo_80.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+	<None Include="README.md">
+	  <Pack>True</Pack>
+	  <PackagePath>\</PackagePath> 
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+	  <PackageReference Include="Microsoft.PowerPlatform.Dataverse.Client" Version="1.1.32" />
+	  <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
+  </ItemGroup>
+
+</Project>
