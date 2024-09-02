@@ -70,15 +70,31 @@ jobs:
     - name: Find NuGet package
       id: find_package
       run: echo "::set-output name=package::$(Get-ChildItem -Recurse -Filter *.nupkg | Select-Object -First 1).FullName"
-
+      
+    - name: Check for tags
+      id: check_tags
+      run: |
+        if [ -z "$(git tag)" ]; then
+          echo "No tags found"
+          echo "::set-output name=has_tags::false"
+        else
+          echo "::set-output name=has_tags::true"
+        fi
+        
     - name: Get previous release tag
       id: prev_tag
+      if: steps.check_tags.outputs.has_tags == 'true'
       run: echo "::set-output name=tag::$(git describe --tags --abbrev=0 HEAD^)"
 
     - name: Get commit messages
       id: commit_messages
-      run: echo "::set-output name=messages::$(git log ${{ steps.prev_tag.outputs.tag }}..HEAD --pretty=format:'%s')"
-
+      run: |
+        if [ "${{ steps.check_tags.outputs.has_tags }}" == "true" ]; then
+          echo "::set-output name=messages::$(git log ${{ steps.prev_tag.outputs.tag }}..HEAD --pretty=format:'%s')"
+        else
+          echo "::set-output name=messages::$(git log --pretty=format:'%s')"
+        fi
+        
     - name: Create GitHub Release
       uses: actions/create-release@v1
       env:
