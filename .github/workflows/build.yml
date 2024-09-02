@@ -56,7 +56,7 @@ jobs:
         git config --global user.email 'github-actions@github.com'
         git add build_info.txt
         git commit -m "Update build info to ${{ steps.build_info.outputs.build_number }}"
-        git push origin main
+        git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
 
 
     - name: Build with version number
