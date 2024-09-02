@@ -70,6 +70,10 @@ jobs:
     - name: Find NuGet package
       id: find_package
       run: echo "::set-output name=package::$(Get-ChildItem -Recurse -Filter *.nupkg | Select-Object -First 1)"
+
+    - name: Extract package name
+      id: extract_package_name
+      run: echo "::set-output name=package_name::$(basename ${{ steps.find_package.outputs.package }})"
       
     - name: Check for tags
       id: check_tags
@@ -118,7 +122,7 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ${{ steps.find_package.outputs.package }}
-        asset_name: $(Split-Path -Leaf ${{ steps.find_package.outputs.package }})
+        asset_name: ${{ steps.extract_package_name.outputs.package_name }}
         asset_content_type: application/octet-stream
   
     - name: Publish to NuGet
