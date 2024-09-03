@@ -57,7 +57,7 @@ namespace Greg.FetchXmlDom.Model
 			accountLink.ColumnSet.Add("name");
 			fetch.LinkEntities.Add(accountLink);
 
-			fetch.AddCondition(new ConditionExpression("fullname", ConditionOperator.Equal) { ValueOf = "acct.name" });
+			fetch.AddConditionToOtherColumn("fullname", ConditionOperator.Equal, "acct.name");
 
 			var result = fetch.ToString();
 

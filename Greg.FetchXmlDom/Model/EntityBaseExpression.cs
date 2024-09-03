@@ -202,16 +202,7 @@ namespace Greg.FetchXmlDom.Model
 		{
 			if (this.Filter == null) this.AddFilter();
 
-			var condition = new ConditionExpression(attribute, conditionOperator) { ValueOf = otherColumn };
-			this.Filter?.Conditions.Add(condition);
-			return condition;
-		}
-
-		public ConditionExpression AddConditionToOtherColumn(string attribute, ConditionOperator conditionOperator, string otherTableAlias, string otherColumn)
-		{
-			if (this.Filter == null) this.AddFilter();
-
-			var condition = new ConditionExpression(attribute, conditionOperator) { ValueOf = otherTableAlias + "." + otherColumn };
+			var condition = ConditionExpression.CreateConditionToOtherColumn(attribute, conditionOperator, otherColumn);
 			this.Filter?.Conditions.Add(condition);
 			return condition;
 		}
