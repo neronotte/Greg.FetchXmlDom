@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace Greg.FetchXmlDom.Model
@@ -6,9 +7,9 @@ namespace Greg.FetchXmlDom.Model
 	/// <summary>
 	/// Represents a collection of attributes to be returned by the query.
 	/// </summary>
-	public class AttributeCollection : IReadOnlyList<AttributeExpression>
+	public class ColumnCollection : IReadOnlyList<ColumnExpression>
 	{
-		private readonly List<AttributeExpression> _attributes = new List<AttributeExpression>();
+		private readonly List<ColumnExpression> _attributes = new List<ColumnExpression>();
 		private bool _allAttributes = false;
 
 		/// <summary>
@@ -16,7 +17,7 @@ namespace Greg.FetchXmlDom.Model
 		/// </summary>
 		/// <param name="index">The index of the attribute to return.</param>
 		/// <returns>The attribute at the specified index</returns>
-		public AttributeExpression this[int index] => _attributes[index];
+		public ColumnExpression this[int index] => _attributes[index];
 
 
 		/// <summary>
@@ -47,7 +48,7 @@ namespace Greg.FetchXmlDom.Model
 		/// Enumerates the attributes in the collection.
 		/// </summary>
 		/// <returns>An enumerator</returns>
-		public IEnumerator<AttributeExpression> GetEnumerator()
+		public IEnumerator<ColumnExpression> GetEnumerator()
 		{
 			return _attributes.GetEnumerator();
 		}
@@ -65,8 +66,11 @@ namespace Greg.FetchXmlDom.Model
 		/// Adds a new attribute in the collection.
 		/// </summary>
 		/// <param name="attribute">The expression to add to the collection</param>
-		public AttributeCollection Add(AttributeExpression attribute)
+		public ColumnCollection Add(ColumnExpression attribute)
 		{
+			if (_attributes.Contains(attribute))
+				throw new ArgumentException("The specified attribute is already in the collection", nameof(attribute));
+
 			_attributes.Add(attribute);
 			_allAttributes = false;
 			return this;
@@ -79,11 +83,11 @@ namespace Greg.FetchXmlDom.Model
 		/// <returns>
 		/// The current collection, to allow for fluent syntax combining multiple calls.
 		/// </returns>
-		public AttributeCollection Add(params string[] attributeNames)
+		public ColumnCollection Add(params string[] attributeNames)
 		{
 			foreach (var attributeName in attributeNames)
 			{
-				Add(new AttributeExpression(attributeName));
+				Add(new ColumnExpression(attributeName));
 			}
 			return this;
 		}

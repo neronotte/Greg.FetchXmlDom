@@ -4,65 +4,89 @@ using System.Xml;
 
 namespace Greg.FetchXmlDom.Model
 {
-	/// <summary>
-	/// <see cref="https://learn.microsoft.com/en-us/power-apps/developer/data-platform/fetchxml/reference/condition"/>
-	/// </summary>
-	public class ConditionExpression : IValidatableObject
+    /// <summary>
+    /// <see cref="https://learn.microsoft.com/en-us/power-apps/developer/data-platform/fetchxml/reference/condition"/>
+    /// </summary>
+    public class ConditionExpression : IValidatableObject
 	{
-        public ConditionExpression()
-        {
+
+		public ConditionExpression(string columnName, ConditionOperator conditionOperator)
+		{
+			if (string.IsNullOrWhiteSpace(columnName))
+				throw new System.ArgumentException("columnName cannot be empty", nameof(columnName));
+
+			this.Attribute = columnName;
+			this.Operator = conditionOperator;
 		}
 
-		public ConditionExpression(string attribute, ConditionOperator conditionOperator, object[] values)
+		public ConditionExpression(string columnName, ConditionOperator conditionOperator, object value)
+			: this(columnName, conditionOperator)
 		{
-			this.Attribute = attribute;
-			this.Operator = conditionOperator;
+			this.Values = value != null ? new[] { value } : null;
+		}
+		public ConditionExpression(string columnName, ConditionOperator conditionOperator, object[] values)
+			: this(columnName, conditionOperator)
+		{
 			this.Values = values;
 		}
 
-		public ConditionExpression(string attribute, ConditionOperator conditionOperator, object value)
+		public ConditionExpression(string entityAlias, string columnName, ConditionOperator conditionOperator)
+			: this(columnName, conditionOperator)
 		{
-			this.Attribute = attribute;
-			this.Operator = conditionOperator;
-			this.Values = new[] { value };
+			if (string.IsNullOrWhiteSpace(entityAlias))
+				throw new System.ArgumentException("entityAlias cannot be empty", nameof(entityAlias));
+
+			this.EntityName = entityAlias;
 		}
 
-		public ConditionExpression(string attribute, ConditionOperator conditionOperator)
+		public ConditionExpression(string entityAlias, string columnName, ConditionOperator conditionOperator, object value)
+			: this(entityAlias, columnName, conditionOperator)
 		{
-			this.Attribute = attribute;
-			this.Operator = conditionOperator;
+			this.Values = value != null ? new[] { value } : null;
+		}
+
+		public ConditionExpression(string entityAlias, string columnName, ConditionOperator conditionOperator, object[] values)
+			: this(entityAlias, columnName, conditionOperator)
+		{
+			this.Values = values;
+		}
+
+
+
+		public static ConditionExpression CreateConditionToOtherColumn(string attribute, ConditionOperator conditionOperator, string otherColumn)
+		{
+			var condition = new ConditionExpression(attribute, conditionOperator) { ValueOf = otherColumn };
+			return condition;
 		}
 
 
 		/// <summary>
 		/// The name of the column with the value to apply the filter.
 		/// </summary>
-		[Required(ErrorMessage = "Condition attribute is required")]
-		public string Attribute { get; set; }
+		public string Attribute { get; }
 
 		/// <summary>
 		/// The operator to apply with the filter.
 		/// </summary>
-		[Required(ErrorMessage = "Condition operator is required")]
-		public ConditionOperator? Operator { get; set; }
+		public ConditionOperator? Operator { get; }
 
 		/// <summary>
 		/// Specify the link-entity name or alias that the condition should be applied to after the outer join. 
 		/// Learn more about filters on link-entity <see cref="https://learn.microsoft.com/en-us/power-apps/developer/data-platform/fetchxml/filter-rows#filters-on-link-entity"/>
 		/// </summary>
-		public string EntityName { get; set; }
+		public string EntityName { get; private set; }
 
 
 		/// <summary>
 		/// The value to test the column value with the operator.
 		/// </summary>
-		public object[] Values { get; set; }
+		public object[] Values { get; }
 
 		/// <summary>
 		/// The name of the column in the same table that has the value to test the column value with the operator. 
 		/// Learn more about filtering on other column values. <see cref="https://learn.microsoft.com/en-us/power-apps/developer/data-platform/fetchxml/filter-rows#filter-on-column-values-in-the-same-row"/>
 		/// </summary>
-		public string ValueOf { get; set; }
+		public string ValueOf { get; private set; }
 
 
 
@@ -93,6 +117,23 @@ namespace Greg.FetchXmlDom.Model
 
 					if (requiresValue.Exactly > 0 && requiresValue.Exactly != valueCount)
 						yield return new ValidationResult($"Operator {Operator} requires exactly {requiresValue.Exactly} value{(requiresValue.Exactly == 1 ? "" : "s")}, while {valueCount} value{(valueCount == 1? "" : "s")} ha{(valueCount == 1 ? "s" : "ve")} been provided", new[] { nameof(Operator), nameof(Values), nameof(ValueOf) });
+				}
+			}
+
+			if (Values != null && Values.Length > 0)
+			{
+				for (int i = 0; i < Values.Length; i++)
+				{
+					if (Values[i] == null)
+					{
+						yield return new ValidationResult($"Value[{i}] cannot be null", new[] { nameof(Values) });
+					}
+				}
+
+
+				if (!string.IsNullOrWhiteSpace(ValueOf))
+				{
+					yield return new ValidationResult("Values and ValueOf must not be set simultaneously", new[] { nameof(Values), nameof(ValueOf) });
 				}
 			}
 		}

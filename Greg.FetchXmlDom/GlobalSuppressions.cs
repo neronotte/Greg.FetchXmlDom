@@ -7,3 +7,5 @@ using System.Diagnostics.CodeAnalysis;
 
 [assembly: SuppressMessage("Style", "IDE0300:Simplify collection initialization", Justification = "The package targets both net8.0 and net462. In net462 the feature is not available.", Scope = "module")]
 [assembly: SuppressMessage("Style", "IDE0028:Simplify collection initialization", Justification = "The package targets both net8.0 and net462. In net462 the feature is not available.", Scope = "module")]
+[assembly: SuppressMessage("Style", "IDE0074:Use compound assignment", Justification = "The package targets both net8.0 and net462. In net462 the feature is not available.", Scope = "module")]
+[assembly: SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "The package targets both net8.0 and net462. In net462 the feature is not available.", Scope = "module")]

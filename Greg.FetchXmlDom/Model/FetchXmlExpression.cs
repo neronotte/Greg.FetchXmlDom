@@ -1,20 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
 using System.Text;
 using System.Xml;
-using System.Xml.Linq;
 
 namespace Greg.FetchXmlDom.Model
 {
-	public class FetchXmlExpression : EntityBaseExpression, IValidatableObject
+	/// <summary>
+	/// Object oriented representation of a FetchXml query.
+	/// </summary>
+    public class FetchXmlExpression : EntityBaseExpression, IValidatableObject
 	{
-        public FetchXmlExpression()
+		/// <summary>
+		/// Creates a simple FetchXml expression
+		/// </summary>
+		public FetchXmlExpression()
         {
-        }
+		}
 
-        public FetchXmlExpression(string tableName)
+		/// <summary>
+		/// Creates a simple FetchXml expression
+		/// </summary>
+		/// <param name="tableName">The name of the main table</param>
+		/// <exception cref="ArgumentNullException">If the name of the main table is not provided</exception>
+		public FetchXmlExpression(string tableName)
 		{
 			if (string.IsNullOrWhiteSpace(tableName))
 			{
@@ -23,6 +32,64 @@ namespace Greg.FetchXmlDom.Model
 
 			this.TableName = tableName;
 		}
+
+
+		/// <summary>
+		/// Creates a FetchXml expression with paging management
+		/// </summary>
+		/// <param name="tableName">The name of the main table</param>
+		/// <param name="page">The index of the page to fetch. Must be >= 0</param>
+		/// <param name="pagingCookie">The paging cookie returned by the previous invocation of the query.</param>
+		/// <param name="count">Optional. The number of records in each page.</param>
+		/// <param name="returnTotalRecordCount">Optional. Indicates whether the total number of records matching the query criteria should be returned or not</param>
+		/// <exception cref="ArgumentNullException">If the name of the main table is not provided</exception>
+		public FetchXmlExpression(string tableName, int page, string pagingCookie, int? count = null, bool? returnTotalRecordCount = null)
+			: this(tableName)
+		{
+			this.Page = page;
+			this.PagingCookie = pagingCookie;
+			this.Count = count;
+		}
+
+
+		/// <summary>
+		/// Creates a FetchXml expression with a limit on the number of records to fetch
+		/// </summary>
+		/// <param name="tableName">The name of the main table</param>
+		/// <param name="top">The number of records to fetch (must be between 1 and 5000)</param>
+		/// <exception cref="ArgumentNullException">If the name of the main table is not provided</exception>
+		/// <exception cref="ArgumentOutOfRangeException">If the top value is less than 1 or greater than 5000</exception>
+		public FetchXmlExpression(string tableName, int top) 
+			: this(tableName)
+		{
+			if (top < 1 || top > 5000)
+				throw new ArgumentOutOfRangeException(nameof(top), "Top value must be between 1 and 5000.");
+
+            this.Top = top;
+		}
+
+		/// <summary>
+		/// Creates a FetchXml expression to be used for aggregate queries
+		/// </summary>
+		/// <param name="tableName">The name of the main table</param>
+		/// <param name="aggregate"><c>True</c> if you want an aggregate query, <c>false</c> if you only need distinct values</param>
+		/// <param name="aggregateLimit">Set a limit below the standard 50,000 record aggregate limit.</param>
+		/// <param name="distinct">Boolean value to specify that duplicate rows not be included in the results.</param>
+		/// <exception cref="ArgumentNullException">If the name of the main table is not provided</exception>
+		/// <exception cref="ArgumentOutOfRangeException">If the aggregate limit is specified and is less than 1 or greater than 50000</exception>
+		public FetchXmlExpression(string tableName, bool aggregate, int? aggregateLimit = null, bool? distinct = null)
+			: this(tableName)
+		{
+			if (aggregateLimit.HasValue && (aggregateLimit.Value < 1 || aggregateLimit.Value > 50000))
+			{
+				throw new ArgumentOutOfRangeException(nameof(aggregateLimit), "AggregateLimit value cannot be less than 1 or greater than 50000");
+			}
+
+			this.Aggregate = aggregate;
+			this.AggregateLimit = aggregateLimit;
+			this.Distinct = distinct;
+		}
+
 
 		/// <summary>
 		/// Boolean value to specify that the query returns aggregate values.
@@ -35,12 +102,6 @@ namespace Greg.FetchXmlDom.Model
 		/// See <see cref="https://learn.microsoft.com/en-us/power-apps/developer/data-platform/fetchxml/aggregate-data#limitations"/>
 		/// </summary>
 		public int? AggregateLimit { get; set; }
-
-		/// <summary>
-		/// Positive integer value to specify the number of records to return in a page.
-		/// See <see cref="https://learn.microsoft.com/en-us/power-apps/developer/data-platform/fetchxml/page-results"/>
-		/// </summary>
-		public int? Count { get; set; }
 
 		/// <summary>
 		/// When using Dataverse long term data retention, set datasource to 'retained' to indicate the query is for retained rows only.
@@ -78,6 +139,12 @@ namespace Greg.FetchXmlDom.Model
 		/// See <see cref="https://learn.microsoft.com/en-us/power-apps/developer/data-platform/fetchxml/page-results"/>
 		/// </summary>ì
 		public string PagingCookie { get; set; }
+
+		/// <summary>
+		/// Positive integer value to specify the number of records to return in a page.
+		/// See <see cref="https://learn.microsoft.com/en-us/power-apps/developer/data-platform/fetchxml/page-results"/>
+		/// </summary>
+		public int? Count { get; set; }
 
 		/// <summary>
 		/// Boolean value to specify whether the total number of records matching the criteria is returned.
@@ -127,11 +194,29 @@ namespace Greg.FetchXmlDom.Model
 			return validationResults;
 		}
 
-		public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+
+
+
+		public override IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
 		{
+			if (this.Aggregate.GetValueOrDefault())
+			{
+				validationContext.Items.Add("aggregate-query", true);
+			}
+
+			if (AggregateLimit.HasValue && AggregateLimit.Value < 1)
+			{
+				yield return new ValidationResult("AggregateLimit value cannot be less than 1", new[] { nameof(AggregateLimit) });
+			}
+
 			if (AggregateLimit.HasValue && AggregateLimit.Value > 50000)
 			{
 				yield return new ValidationResult("AggregateLimit value cannot exceed 50000", new[] { nameof(AggregateLimit) });
+			}
+
+			if (Top.HasValue && Top.Value < 1)
+			{
+				yield return new ValidationResult("Top value cannot be less than 1", new[] { nameof(Top) });
 			}
 
 			if (Top.HasValue && Top.Value > 5000)
@@ -147,7 +232,13 @@ namespace Greg.FetchXmlDom.Model
 			if (Page.HasValue && Page.Value < 0)
 			{
 				yield return new ValidationResult("Page value cannot be negative", new[] { nameof(Page) });
-			}	
+			}
+
+			var baseResult = base.Validate(validationContext);
+			foreach (var validationResult in baseResult)
+			{
+				yield return validationResult;
+			}
 		}
 
 

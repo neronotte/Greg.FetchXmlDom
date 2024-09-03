@@ -3,10 +3,10 @@
 namespace Greg.FetchXmlDom.Model
 {
 	[TestFixture]
-	public class FetchExpressionTest
+	public class FetchXmlExpressionTest
 	{
 		[Test]
-		public void Test01()
+		public void ToString_Empty_ShouldWork()
 		{
 			var fetch = new FetchXmlExpression();
 			var result = fetch.ToString();
@@ -16,7 +16,7 @@ namespace Greg.FetchXmlDom.Model
 
 
 		[Test]
-		public void Test02()
+		public void ToString_WithTop_ShouldWork()
 		{
 			var fetch = new FetchXmlExpression
 			{
@@ -28,7 +28,7 @@ namespace Greg.FetchXmlDom.Model
 		}
 
 		[Test]
-		public void Test03()
+		public void ToString_WithBasicFilter_ShouldWork()
 		{
 			var fetch = new FetchXmlExpression("contact");
 			var filter = fetch.AddFilter();
@@ -48,13 +48,13 @@ namespace Greg.FetchXmlDom.Model
 
 
 		[Test]
-		public void TestComplex01()
+		public void ToString_WithMediumComplexQuery01_ShouldWork()
 		{
 			var fetch = new FetchXmlExpression("contact");
-			fetch.Attributes.Add("contactid", "fullname");
+			fetch.AddColumns("contactid", "fullname");
 
 			var accountLink = new LinkEntityExpression("account", "accountid", "parentcustomerid", LinkType.Outer, "acct");
-			accountLink.Attributes.Add("name");
+			accountLink.ColumnSet.Add("name");
 			fetch.LinkEntities.Add(accountLink);
 
 			fetch.AddCondition(new ConditionExpression("fullname", ConditionOperator.Equal) { ValueOf = "acct.name" });
@@ -77,13 +77,13 @@ namespace Greg.FetchXmlDom.Model
 
 
 		[Test]
-		public void TestComplex03()
+		public void ToString_WithMediumComplexQuery02_ShouldWork()
 		{
 			var fetch = new FetchXmlExpression("contact");
-			fetch.Attributes.Add("contactid", "fullname");
+			fetch.AddColumns("contactid", "fullname");
 
 			var accountLink = fetch.AddLink("account", "accountid", "parentcustomerid", LinkType.Outer, "acct");
-			accountLink.Attributes.Add("name");
+			accountLink.AddColumns("name");
 
 			fetch.AddConditionToOtherColumn("fullname", ConditionOperator.Equal, "acct.name");
 

@@ -5,10 +5,10 @@ using System.Xml;
 
 namespace Greg.FetchXmlDom.Model
 {
-	/// <summary>
-	/// <see cref="https://learn.microsoft.com/en-us/power-apps/developer/data-platform/fetchxml/reference/filter"/>
-	/// </summary>
-	public class FilterExpression : IValidatableObject
+    /// <summary>
+    /// <see cref="https://learn.microsoft.com/en-us/power-apps/developer/data-platform/fetchxml/reference/filter"/>
+    /// </summary>
+    public class FilterExpression : IValidatableObject
 	{
 		public FilterExpression(FilterType type = FilterType.And)
 		{
@@ -19,7 +19,7 @@ namespace Greg.FetchXmlDom.Model
         /// <summary>
         /// Use and or or. Whether all (and) or any (or) conditions within the filter must be met.
         /// </summary>
-        public FilterType? Type { get; set; }
+        public FilterType? Type { get; }
 
 
 		/// <summary>
@@ -58,37 +58,50 @@ namespace Greg.FetchXmlDom.Model
 
 
 
-		public ConditionExpression AddCondition(string attribute, ConditionOperator conditionOperator, object[] values)
+		public ConditionExpression AddCondition(string columnName, ConditionOperator conditionOperator, object[] values)
 		{
-			var condition = new ConditionExpression(attribute, conditionOperator, values);
+			var condition = new ConditionExpression(columnName, conditionOperator, values);
 			this.Conditions.Add(condition);
 			return condition;
 		}
 
-		public ConditionExpression AddCondition(string attribute, ConditionOperator conditionOperator, object value)
+		public ConditionExpression AddCondition(string columnName, ConditionOperator conditionOperator, object value)
 		{
-			var condition = new ConditionExpression(attribute, conditionOperator, value);
+			var condition = new ConditionExpression(columnName, conditionOperator, value);
 			this.Conditions.Add(condition);
 			return condition;
 		}
 
-		public ConditionExpression AddCondition(string attribute, ConditionOperator conditionOperator)
+		public ConditionExpression AddCondition(string columnName, ConditionOperator conditionOperator)
 		{
-			var condition = new ConditionExpression(attribute, conditionOperator);
+			var condition = new ConditionExpression(columnName, conditionOperator);
+			this.Conditions.Add(condition);
+			return condition;
+		}
+		public ConditionExpression AddCondition(string entityAlias, string columnName, ConditionOperator conditionOperator, object[] values)
+		{
+			var condition = new ConditionExpression(entityAlias, columnName, conditionOperator, values);
 			this.Conditions.Add(condition);
 			return condition;
 		}
 
-		public ConditionExpression AddConditionToOtherColumn(string attribute, ConditionOperator conditionOperator, string otherColumn)
+		public ConditionExpression AddCondition(string entityAlias, string columnName, ConditionOperator conditionOperator, object value)
 		{
-			var condition = new ConditionExpression(attribute, conditionOperator) { ValueOf = otherColumn };
+			var condition = new ConditionExpression(entityAlias, columnName, conditionOperator, value);
 			this.Conditions.Add(condition);
 			return condition;
 		}
 
-		public ConditionExpression AddConditionToOtherColumn(string attribute, ConditionOperator conditionOperator, string otherTableAlias, string otherColumn)
+		public ConditionExpression AddCondition(string entityAlias, string columnName, ConditionOperator conditionOperator)
 		{
-			var condition = new ConditionExpression(attribute, conditionOperator) { ValueOf = otherTableAlias + "." + otherColumn };
+			var condition = new ConditionExpression(entityAlias, columnName, conditionOperator);
+			this.Conditions.Add(condition);
+			return condition;
+		}
+
+		public ConditionExpression AddConditionToOtherColumn(string columnName, ConditionOperator conditionOperator, string otherColumn)
+		{
+			var condition = ConditionExpression.CreateConditionToOtherColumn(columnName, conditionOperator, otherColumn);
 			this.Conditions.Add(condition);
 			return condition;
 		}
@@ -134,7 +147,7 @@ namespace Greg.FetchXmlDom.Model
 		{
 			var link = new LinkEntityExpression();
 
-			if (configureAction != null) configureAction(link);
+			configureAction?.Invoke(link);
 
 			if (LinkEntities == null) LinkEntities = new List<LinkEntityExpression>();
 			LinkEntities.Add(link);
@@ -162,10 +175,18 @@ namespace Greg.FetchXmlDom.Model
 
 		public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
 		{
+			var validationResults = new List<ValidationResult>();
+
 			if (Conditions != null && Conditions.Count > 500)
 			{
-				yield return new ValidationResult("The maximum number of conditions is 500.", new[] { nameof(Conditions) });
+				validationResults.Add( new ValidationResult("Conditions.The maximum number of conditions is 500.", new[] { nameof(Conditions) }) );
 			}
+
+			Conditions.TryValidateList(nameof(Conditions), validationContext, validationResults);
+			Filters.TryValidateList(nameof(Filters), validationContext, validationResults);
+			LinkEntities.TryValidateList(nameof(LinkEntities), validationContext, validationResults);
+
+			return validationResults;
 		}
 
 

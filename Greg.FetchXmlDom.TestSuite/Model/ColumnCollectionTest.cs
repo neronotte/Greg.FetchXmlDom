@@ -4,12 +4,12 @@ using System;
 namespace Greg.FetchXmlDom.Model
 {
 	[TestFixture]
-	public class AttributeCollectionTest
+	public class ColumnCollectionTest
 	{
 		[Test]
         public void NewCollection_Should_BeEmpty()
 		{
-			var attributes = new AttributeCollection();
+			var attributes = new ColumnCollection();
 
 			attributes.Count.Should().Be(0, "The collection should not contain attributes when you create it");
 			attributes.All.Should().Be(false, "The collection \"All\" property should be false");
@@ -18,8 +18,10 @@ namespace Greg.FetchXmlDom.Model
 		[Test]
 		public void Add_WithAll_Should_NotContainAttributes()
 		{
-			var attributes = new AttributeCollection();
-			attributes.All = true;
+			var attributes = new ColumnCollection
+			{
+				All = true
+			};
 
 			attributes.Count.Should().Be(0);
 			attributes.All.Should().Be(true);
@@ -28,9 +30,9 @@ namespace Greg.FetchXmlDom.Model
 		[Test]
 		public void Add_WithAttribute_Should_AddAttribute()
 		{
-			var attributes = new AttributeCollection();
+			var attributes = new ColumnCollection();
 
-			var attribute = new AttributeExpression();
+			var attribute = new ColumnExpression("a");
 			attributes.Add(attribute);
 
 
@@ -45,9 +47,9 @@ namespace Greg.FetchXmlDom.Model
 		[Test]
 		public void Add_WithAttributeAndAll_Should_ClearCollectionAndSetAllToTrue()
 		{
-			var attributes = new AttributeCollection();
+			var attributes = new ColumnCollection();
 
-			var attribute = new AttributeExpression();
+			var attribute = new ColumnExpression("a");
 			attributes.Add(attribute);
 			attributes.All = true;
 
@@ -59,9 +61,9 @@ namespace Greg.FetchXmlDom.Model
 		[Test]
 		public void Add_WithAllThenAttribute_Should_ClearAllAndAddAttributeToCollection()
 		{
-			var attributes = new AttributeCollection();
+			var attributes = new ColumnCollection();
 
-			var attribute = new AttributeExpression();
+			var attribute = new ColumnExpression("a");
 			attributes.All = true;
 			attributes.Add(attribute);
 
@@ -72,7 +74,7 @@ namespace Greg.FetchXmlDom.Model
 		[Test]
 		public void AddList_With1Attribute_Should_Add1Attribute()
 		{
-			var attributes = new AttributeCollection
+			var attributes = new ColumnCollection
 			{
 				"attribute1"
 			};
@@ -95,7 +97,7 @@ namespace Greg.FetchXmlDom.Model
 		[Test]
 		public void AddList_With3Attributes_Should_Add3Attributes()
 		{
-			var attributes = new AttributeCollection
+			var attributes = new ColumnCollection
 			{
 				"attribute0", "attribute1", "attribute2"
 			};
@@ -120,8 +122,10 @@ namespace Greg.FetchXmlDom.Model
 		[Test]
 		public void AddList_With3Attributes_Should_Add3Attributes_2()
 		{
-			var attributes = new AttributeCollection();
+#pragma warning disable IDE0028 // Simplify collection initialization
+			var attributes = new ColumnCollection();
 			attributes.Add("attribute0", "attribute1", "attribute2");
+#pragma warning restore IDE0028 // Simplify collection initialization
 
 			attributes.Count.Should().Be(3);
 			attributes.All.Should().Be(false);
