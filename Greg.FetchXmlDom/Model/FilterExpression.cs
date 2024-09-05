@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Xml;
 
 namespace Greg.FetchXmlDom.Model
@@ -8,7 +7,7 @@ namespace Greg.FetchXmlDom.Model
     /// <summary>
     /// <see cref="https://learn.microsoft.com/en-us/power-apps/developer/data-platform/fetchxml/reference/filter"/>
     /// </summary>
-    public class FilterExpression : IValidatableObject
+    public class FilterExpression
 	{
 		public FilterExpression(FilterType type = FilterType.And)
 		{
@@ -141,53 +140,31 @@ namespace Greg.FetchXmlDom.Model
 		/// <summary>
 		/// Adds a link-entity to the current entity.
 		/// </summary>
-		/// <param name="configureAction">A delegate that can be used to configure the link entity</param>
-		/// <returns>The newly created link entity</returns>
-		public LinkEntityExpression AddLink(Action<LinkEntityExpression> configureAction = null)
-		{
-			var link = new LinkEntityExpression();
-
-			configureAction?.Invoke(link);
-
-			if (LinkEntities == null) LinkEntities = new List<LinkEntityExpression>();
-			LinkEntities.Add(link);
-			return link;
-		}
-
-		/// <summary>
-		/// Adds a link-entity to the current entity.
-		/// </summary>
 		/// <param name="entityName">The referenced table</param>
 		/// <param name="from">The name of the field the current table that references the target table</param>
 		/// <param name="to">The name of the key field on the target table</param>
 		/// <param name="linkType">The type of link </param>
-		/// <param name="alias"></param>
-		/// <returns></returns>
-		public LinkEntityExpression AddLink(string entityName, string from, string to, LinkType linkType = LinkType.Inner, string alias = null)
+		/// <param name="alias">
+		/// Represents the name of the related table. 
+		/// If you don't set an alias, one will be generated for you to ensure all columns have unique names, 
+		/// but you will not be able to use that alias to reference the link entity in other parts of the fetch XML.
+		/// The auto-generated aliases use the pattern {LogicalName}+{N}, where N is the sequential number 
+		/// of the link-entity in the fetch XML starting from 1.
+		/// </param>
+		/// <param name="intersect">
+		/// Indicates that the link-entity is used to join tables and not return any columns, typically for a many-to-many relationship. 
+		/// The existence of this attribute doesn't change the query execution. 
+		/// You might add this attribute to your link-entity when you join a table but don't include any attribute elements to show that this is intentional.
+		/// </param>
+		/// <returns>The link entity just created</returns>
+		public LinkEntityExpression AddLink(string entityName, string from, string to, LinkType linkType = LinkType.Inner, string alias = null, bool intersect = false)
 		{
-			var link = new LinkEntityExpression(entityName, from, to, linkType, alias);
+			var link = new LinkEntityExpression(entityName, from, to, linkType, alias, intersect);
 			if (LinkEntities == null) LinkEntities = new List<LinkEntityExpression>();
 			LinkEntities.Add(link);
 			return link;
 		}
 
-
-
-		public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-		{
-			var validationResults = new List<ValidationResult>();
-
-			if (Conditions != null && Conditions.Count > 500)
-			{
-				validationResults.Add( new ValidationResult("Conditions.The maximum number of conditions is 500.", new[] { nameof(Conditions) }) );
-			}
-
-			Conditions.TryValidateList(nameof(Conditions), validationContext, validationResults);
-			Filters.TryValidateList(nameof(Filters), validationContext, validationResults);
-			LinkEntities.TryValidateList(nameof(LinkEntities), validationContext, validationResults);
-
-			return validationResults;
-		}
 
 
 

@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Xml;
 
 namespace Greg.FetchXmlDom.Model
@@ -7,57 +7,133 @@ namespace Greg.FetchXmlDom.Model
     /// <summary>
     /// <see cref="https://learn.microsoft.com/en-us/power-apps/developer/data-platform/fetchxml/reference/condition"/>
     /// </summary>
-    public class ConditionExpression : IValidatableObject
+    public class ConditionExpression
 	{
-
 		public ConditionExpression(string columnName, ConditionOperator conditionOperator)
 		{
 			if (string.IsNullOrWhiteSpace(columnName))
-				throw new System.ArgumentException("columnName cannot be empty", nameof(columnName));
+                throw new ArgumentException("columnName cannot be empty", nameof(columnName));
 
 			this.Attribute = columnName;
 			this.Operator = conditionOperator;
+
+			ValidateOperator(conditionOperator, null, null);
 		}
 
 		public ConditionExpression(string columnName, ConditionOperator conditionOperator, object value)
-			: this(columnName, conditionOperator)
 		{
+			if (string.IsNullOrWhiteSpace(columnName))
+				throw new ArgumentException("columnName cannot be empty", nameof(columnName));
+
+			this.Attribute = columnName;
+			this.Operator = conditionOperator;
 			this.Values = value != null ? new[] { value } : null;
+
+			ValidateOperator(conditionOperator, this.Values, null);
 		}
+
 		public ConditionExpression(string columnName, ConditionOperator conditionOperator, object[] values)
-			: this(columnName, conditionOperator)
 		{
+			if (string.IsNullOrWhiteSpace(columnName))
+				throw new ArgumentException("columnName cannot be empty", nameof(columnName));
+
+			this.Attribute = columnName;
+			this.Operator = conditionOperator;
 			this.Values = values;
+
+			ValidateOperator(conditionOperator, this.Values, null);
 		}
 
 		public ConditionExpression(string entityAlias, string columnName, ConditionOperator conditionOperator)
-			: this(columnName, conditionOperator)
 		{
 			if (string.IsNullOrWhiteSpace(entityAlias))
-				throw new System.ArgumentException("entityAlias cannot be empty", nameof(entityAlias));
+				throw new ArgumentException("entityAlias cannot be empty", nameof(entityAlias));
+			if (string.IsNullOrWhiteSpace(columnName))
+                throw new ArgumentException("columnName cannot be empty", nameof(columnName));
 
+			this.Attribute = columnName;
+			this.Operator = conditionOperator;
 			this.EntityName = entityAlias;
+
+			ValidateOperator(conditionOperator, null, null);
 		}
 
 		public ConditionExpression(string entityAlias, string columnName, ConditionOperator conditionOperator, object value)
-			: this(entityAlias, columnName, conditionOperator)
 		{
+			if (string.IsNullOrWhiteSpace(entityAlias))
+				throw new ArgumentException("entityAlias cannot be empty", nameof(entityAlias));
+			if (string.IsNullOrWhiteSpace(columnName))
+				throw new ArgumentException("columnName cannot be empty", nameof(columnName));
+
+			this.Attribute = columnName;
+			this.Operator = conditionOperator;
+			this.EntityName = entityAlias;
 			this.Values = value != null ? new[] { value } : null;
+
+			ValidateOperator(conditionOperator, this.Values, null);
 		}
 
 		public ConditionExpression(string entityAlias, string columnName, ConditionOperator conditionOperator, object[] values)
-			: this(entityAlias, columnName, conditionOperator)
 		{
+			if (string.IsNullOrWhiteSpace(entityAlias))
+				throw new ArgumentException("entityAlias cannot be empty", nameof(entityAlias));
+			if (string.IsNullOrWhiteSpace(columnName))
+				throw new ArgumentException("columnName cannot be empty", nameof(columnName));
+
+			this.Attribute = columnName;
+			this.Operator = conditionOperator;
+			this.EntityName = entityAlias;
 			this.Values = values;
+
+			ValidateOperator(conditionOperator, this.Values, null);
 		}
 
+		private ConditionExpression(string columnName, ConditionOperator conditionOperator, string valueOf)
+		{
+			if (string.IsNullOrWhiteSpace(columnName))
+				throw new ArgumentException("columnName cannot be empty", nameof(columnName));
+
+			this.Attribute = columnName;
+			this.Operator = conditionOperator;
+			this.ValueOf = valueOf;
+
+			ValidateOperator(conditionOperator, null, valueOf);
+		}
 
 
 		public static ConditionExpression CreateConditionToOtherColumn(string attribute, ConditionOperator conditionOperator, string otherColumn)
 		{
-			var condition = new ConditionExpression(attribute, conditionOperator) { ValueOf = otherColumn };
+			var condition = new ConditionExpression(attribute, conditionOperator, otherColumn);
 			return condition;
 		}
+
+		private static void ValidateOperator(ConditionOperator conditionOperator, object[] values, string valueOf)
+		{
+			var requiresValue = conditionOperator.GetRequiresValueAttribute();
+
+			var valueCount = (values?.Length ?? 0) + (string.IsNullOrWhiteSpace(valueOf) ? 0 : 1);
+
+			if (requiresValue == null && valueCount > 0)
+			{
+				throw new ArgumentException($"Operator {conditionOperator} does not wants a value", nameof(conditionOperator));
+			}
+
+			if (requiresValue != null)
+			{
+				if (requiresValue.Exactly == 0 && valueCount == 0)
+					throw new ArgumentException($"Operator {conditionOperator} requires one or more values", nameof(conditionOperator));
+
+
+				if (requiresValue.Exactly > 0 && requiresValue.Exactly != valueCount)
+					throw new ArgumentException($"Operator {conditionOperator} requires exactly {requiresValue.Exactly} value{(requiresValue.Exactly == 1 ? "" : "s")}, while {valueCount} value{(valueCount == 1 ? "" : "s")} ha{(valueCount == 1 ? "s" : "ve")} been provided", nameof(conditionOperator));
+			}
+		}
+
+
+
+
+
+
 
 
 		/// <summary>
@@ -68,7 +144,7 @@ namespace Greg.FetchXmlDom.Model
 		/// <summary>
 		/// The operator to apply with the filter.
 		/// </summary>
-		public ConditionOperator? Operator { get; }
+		public ConditionOperator Operator { get; }
 
 		/// <summary>
 		/// Specify the link-entity name or alias that the condition should be applied to after the outer join. 
@@ -80,7 +156,25 @@ namespace Greg.FetchXmlDom.Model
 		/// <summary>
 		/// The value to test the column value with the operator.
 		/// </summary>
-		public object[] Values { get; }
+		private object[] _values;
+		public object[] Values
+		{
+			get => _values;
+			set  
+			{
+                if ( value != null )
+				{
+					for (int i = 0; i < value.Length; i++)
+					{
+						if (value[i] == null)
+						{
+							throw new ArgumentException($"Value[{i}] cannot be null", nameof(Values));
+						}
+					}
+				}
+				_values = value;
+			}
+		}
 
 		/// <summary>
 		/// The name of the column in the same table that has the value to test the column value with the operator. 
@@ -90,53 +184,6 @@ namespace Greg.FetchXmlDom.Model
 
 
 
-
-		public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-		{
-			if (!string.IsNullOrWhiteSpace(ValueOf) && Values != null && Values.Length > 0)
-			{
-				yield return new ValidationResult("ValueOf and Values cannot be both set in the same condition", new[] { nameof(ValueOf), nameof(Values) });
-			}
-
-			if (Operator != null)
-			{
-				var requiresValue = Operator.GetRequiresValueAttribute();
-
-				var valueCount = (Values?.Length ?? 0) + (string.IsNullOrWhiteSpace(ValueOf) ? 0 : 1);
-
-				if (requiresValue == null && valueCount > 0)
-				{
-					yield return new ValidationResult($"Operator {Operator} does not wants a value", new[] { nameof(Operator), nameof(Values), nameof(ValueOf) });
-				}
-
-				if (requiresValue != null)
-				{
-					if (requiresValue.Exactly == 0 && valueCount == 0)
-						yield return new ValidationResult($"Operator {Operator} requires one or more values", new[] { nameof(Operator), nameof(Values), nameof(ValueOf) });
-
-
-					if (requiresValue.Exactly > 0 && requiresValue.Exactly != valueCount)
-						yield return new ValidationResult($"Operator {Operator} requires exactly {requiresValue.Exactly} value{(requiresValue.Exactly == 1 ? "" : "s")}, while {valueCount} value{(valueCount == 1? "" : "s")} ha{(valueCount == 1 ? "s" : "ve")} been provided", new[] { nameof(Operator), nameof(Values), nameof(ValueOf) });
-				}
-			}
-
-			if (Values != null && Values.Length > 0)
-			{
-				for (int i = 0; i < Values.Length; i++)
-				{
-					if (Values[i] == null)
-					{
-						yield return new ValidationResult($"Value[{i}] cannot be null", new[] { nameof(Values) });
-					}
-				}
-
-
-				if (!string.IsNullOrWhiteSpace(ValueOf))
-				{
-					yield return new ValidationResult("Values and ValueOf must not be set simultaneously", new[] { nameof(Values), nameof(ValueOf) });
-				}
-			}
-		}
 
 
 

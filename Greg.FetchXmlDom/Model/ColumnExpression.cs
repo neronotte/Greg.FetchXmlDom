@@ -1,14 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Xml;
 
 namespace Greg.FetchXmlDom.Model
 {
-    /// <summary>
-    /// Represents a column in a FetchXml query.
-    /// </summary>
-    public sealed class ColumnExpression : IEquatable<ColumnExpression>, IValidatableObject
+	/// <summary>
+	/// Represents a column in a FetchXml query.
+	/// </summary>
+	public sealed class ColumnExpression : IEquatable<ColumnExpression>
 	{
 		/// <summary>
 		/// Creates a new ColumnExpression object.
@@ -29,8 +27,8 @@ namespace Greg.FetchXmlDom.Model
 		/// Creates a new ColumnExpression object representing an aggregate column.
 		/// </summary>
 		/// <param name="columnName">The name of the column</param>
-		/// <param name="alias">An alias for the column</param>
 		/// <param name="aggregateFunction">The aggregate function to apply</param>
+		/// <param name="alias">An alias for the column. Alias is required for aggregate queries, If not provided, the column name is used.</param>
 		/// <param name="rowAggregate">
 		/// When this value is set to CountChildren a value that includes the total number of child records for the record is included in the results. 
 		/// Learn how to use this attribute <see cref="https://learn.microsoft.com/en-us/power-apps/developer/data-platform/query-hierarchical-data#retrieve-the-number-of-hierarchically-related-child-records"/>.
@@ -40,12 +38,15 @@ namespace Greg.FetchXmlDom.Model
 		/// Learn more about distinct column values <see cref="https://learn.microsoft.com/en-us/power-apps/developer/data-platform/fetchxml/aggregate-data#distinct-column-values"/>.
 		/// </param>
 		/// <exception cref="ArgumentNullException"></exception>
-		public static ColumnExpression CreateAggregateColumn(string columnName, string alias, AggregateFunction aggregateFunction, bool? rowAggregate = null, bool? distinct = null)
+		public static ColumnExpression CreateAggregateColumn(string columnName, AggregateFunction aggregateFunction, string alias = null, bool? rowAggregate = null, bool? distinct = null)
 		{
 			if (string.IsNullOrWhiteSpace(columnName))
 				throw new ArgumentNullException(nameof(columnName), "The column name is required");
+
+			if (alias == null) alias = columnName;
 			if (string.IsNullOrWhiteSpace(alias))
-				throw new ArgumentNullException(nameof(alias), "The alias attribute is required for each attribute element in aggregate queries");
+				throw new ArgumentNullException(nameof(alias), "The alias is required for aggregate columns");
+
 
 			var column = new ColumnExpression(columnName, alias)
 			{
@@ -61,7 +62,7 @@ namespace Greg.FetchXmlDom.Model
 		/// Creates a new ColumnExpression object acts as a GROUP BY condition for the query
 		/// </summary>
 		/// <param name="columnName">The name of the column</param>
-		/// <param name="alias">An alias for the column</param>
+		/// <param name="alias">An alias for the column. Alias is required for aggregate queries, If not provided, the column name is used.</param>
 		/// <param name="dateGrouping">
 		/// When you group data by a datetime value, this attribute specifies the date part to use. 
 		/// See Date grouping options <see cref="https://learn.microsoft.com/en-us/power-apps/developer/data-platform/fetchxml/reference/attribute#date-grouping-options"/>
@@ -73,12 +74,14 @@ namespace Greg.FetchXmlDom.Model
 		/// Use this attribute with a false value to force the grouping to use UTC value.
 		/// When you don't set this attribute, the default value is true, and the user's time zone is used.
 		/// </param>
-		public static ColumnExpression CreateGroupColumn(string columnName, string alias, DateGrouping? dateGrouping = null, bool? userTimeZone = null)
+		public static ColumnExpression CreateGroupColumn(string columnName, string alias = null, DateGrouping? dateGrouping = null, bool? userTimeZone = null)
 		{
 			if (string.IsNullOrWhiteSpace(columnName))
 				throw new ArgumentNullException(nameof(columnName), "The column name is required");
+
+			if (alias == null) alias = columnName;
 			if (string.IsNullOrWhiteSpace(alias))
-				throw new ArgumentNullException(nameof(alias), "The alias attribute is required for each attribute element in aggregate queries");
+				throw new ArgumentNullException(nameof(alias), "The alias is required for aggregate columns");
 
 			var column = new ColumnExpression(columnName, alias)
 			{
@@ -92,7 +95,6 @@ namespace Greg.FetchXmlDom.Model
 		/// <summary>
 		/// The logical name of the column.
 		/// </summary>
-		[Required(ErrorMessage = "Attribute name is required")]
 		public string Name { get; }
 
 		/// <summary>
@@ -143,6 +145,15 @@ namespace Greg.FetchXmlDom.Model
 		public bool? UserTimeZone { get; private set; }
 
 
+
+		/// <summary>
+		/// Indicates weather the current column is an aggregate column
+		/// </summary>
+		/// <returns>True if the current column is an aggregate column, false otherwise</returns>
+		public bool IsAggregateColumn()
+		{
+			return GroupBy || Aggregate.HasValue;
+		}
 
 
 		/// <summary>
@@ -199,23 +210,6 @@ namespace Greg.FetchXmlDom.Model
 			}
 		}
 
-		/// <summary>
-		/// Validates the current object
-		/// </summary>
-		/// <param name="validationContext"></param>
-		/// <returns></returns>
-		/// <exception cref="NotImplementedException"></exception>
-		public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-		{
-			var isAggregateQuery = validationContext.Items.ContainsKey("aggregate-query");
-
-			if (isAggregateQuery && !string.IsNullOrWhiteSpace(this.Alias))
-			{
-				yield return new ValidationResult("The alias attribute is required for each attribute element in aggregate queries", new[] { nameof(Aggregate) });
-			}
-		}
-
-
 
 
 		public void WriteXml(XmlWriter writer)
@@ -224,14 +218,14 @@ namespace Greg.FetchXmlDom.Model
 
 			writer.WriteAttributeString("name", Name);
 
-			if (Aggregate.HasValue)
-			{
-				writer.WriteAttributeString("aggregate", Aggregate.Value.ToString().ToLowerInvariant());
-			}
-
 			if (!string.IsNullOrWhiteSpace(Alias))
 			{
 				writer.WriteAttributeString("alias", Alias);
+			}
+
+			if (Aggregate.HasValue)
+			{
+				writer.WriteAttributeString("aggregate", Aggregate.Value.ToString().ToLowerInvariant());
 			}
 
 			if (DateGrouping.HasValue)

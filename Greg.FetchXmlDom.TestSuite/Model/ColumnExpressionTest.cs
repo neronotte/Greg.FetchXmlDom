@@ -7,26 +7,11 @@ namespace Greg.FetchXmlDom.Model
 	[TestFixture]
 	public class ColumnExpressionTest
 	{
-		[Test]
-		public void CreateAggregate_WithAliasNull_ShouldThrowException()
-		{
-			var action = () => ColumnExpression.CreateAggregateColumn("a", null, AggregateFunction.Avg);
-
-			action.Should().Throw<ArgumentNullException>();
-		}
-
-		[Test]
-		public void CreateAggregate_WithAliasEmpty_ShouldThrowException()
-		{
-			var action = () => ColumnExpression.CreateAggregateColumn("a", string.Empty, AggregateFunction.Avg);
-
-			action.Should().Throw<ArgumentNullException>();
-		}
 
 		[Test]
 		public void CreateAggregate_WithAliasBlank_ShouldThrowException()
 		{
-			var action = () => ColumnExpression.CreateAggregateColumn("a", "        ", AggregateFunction.Avg);
+			var action = () => ColumnExpression.CreateAggregateColumn("a", AggregateFunction.Avg, "        ");
 
 			action.Should().Throw<ArgumentNullException>();
 		}

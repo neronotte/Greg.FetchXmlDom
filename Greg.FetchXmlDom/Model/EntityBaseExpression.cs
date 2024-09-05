@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Xml;
 
 namespace Greg.FetchXmlDom.Model
 {
-    public abstract class EntityBaseExpression : IValidatableObject
+    public abstract class EntityBaseExpression
 	{
 		# region Select Management
 		
@@ -54,16 +53,16 @@ namespace Greg.FetchXmlDom.Model
 		/// Adds a column containing an aggregate function to the current collection
 		/// </summary>
 		/// <param name="columnName">The name of the column</param>
-		/// <param name="alias">An alias for the column</param>
 		/// <param name="aggregateFunction">The aggregate function to apply</param>
+		/// <param name="alias">An alias for the column. Alias is required for aggregate queries, If not provided, the column name is used.</param>
 		/// <param name="rowAggregate">
 		/// When this value is set to CountChildren a value that includes the total number of child records for the record is included in the results. 
 		/// Learn how to use this attribute <see cref="https://learn.microsoft.com/en-us/power-apps/developer/data-platform/query-hierarchical-data#retrieve-the-number-of-hierarchically-related-child-records"/>.
 		/// </param>
 		/// <returns>The created column</returns>
-		public ColumnExpression AddAggregateColumn(string columnName, string alias, AggregateFunction aggregateFunction, bool? rowAggregate = null, bool? distinct = null)
+		public ColumnExpression AddAggregateColumn(string columnName, AggregateFunction aggregateFunction, string alias = null, bool? rowAggregate = null, bool? distinct = null)
 		{
-			var column = ColumnExpression.CreateAggregateColumn(columnName, alias, aggregateFunction, rowAggregate, distinct);
+			var column = ColumnExpression.CreateAggregateColumn(columnName, aggregateFunction, alias, rowAggregate, distinct);
 
 			if (ColumnSet == null) ColumnSet = new ColumnCollection();
 			ColumnSet.Add(column);
@@ -74,7 +73,7 @@ namespace Greg.FetchXmlDom.Model
 		/// Adds a column that acts as a GROUP BY condition for the query
 		/// </summary>
 		/// <param name="columnName">The name of the column</param>
-		/// <param name="alias">An alias for the column</param>
+		/// <param name="alias">An alias for the column. Alias is required for aggregate queries, If not provided, the column name is used.</param>
 		/// <param name="dateGrouping">
 		/// When you group data by a datetime value, this attribute specifies the date part to use. 
 		/// See Date grouping options <see cref="https://learn.microsoft.com/en-us/power-apps/developer/data-platform/fetchxml/reference/attribute#date-grouping-options"/>
@@ -87,7 +86,7 @@ namespace Greg.FetchXmlDom.Model
 		/// When you don't set this attribute, the default value is true, and the user's time zone is used.
 		/// </param>
 		/// <returns>The created column</returns>
-		public ColumnExpression AddGroupColumn(string columnName, string alias, DateGrouping? dateGrouping = null, bool? userTimeZone = null)
+		public ColumnExpression AddGroupColumn(string columnName, string alias = null, DateGrouping? dateGrouping = null, bool? userTimeZone = null)
 		{
 			var column = ColumnExpression.CreateGroupColumn(columnName, alias, dateGrouping, userTimeZone);
 
@@ -107,21 +106,6 @@ namespace Greg.FetchXmlDom.Model
 		/// </summary>
 		public List<LinkEntityExpression> LinkEntities { get; set; } = new List<LinkEntityExpression>();
 
-		/// <summary>
-		/// Adds a link-entity to the current entity.
-		/// </summary>
-		/// <param name="configureAction">A delegate that can be used to configure the link entity</param>
-		/// <returns>The newly created link entity</returns>
-		public LinkEntityExpression AddLink(Action<LinkEntityExpression> configureAction = null)
-		{
-			var link = new LinkEntityExpression();
-
-			configureAction?.Invoke(link);
-
-			if (LinkEntities == null) LinkEntities = new List<LinkEntityExpression>();
-			LinkEntities.Add(link);
-			return link;
-		}
 
 		/// <summary>
 		/// Adds a link-entity to the current entity.
@@ -130,11 +114,22 @@ namespace Greg.FetchXmlDom.Model
 		/// <param name="from">The name of the field the current table that references the target table</param>
 		/// <param name="to">The name of the key field on the target table</param>
 		/// <param name="linkType">The type of link </param>
-		/// <param name="alias"></param>
-		/// <returns></returns>
-		public LinkEntityExpression AddLink(string entityName, string from, string to, LinkType linkType = LinkType.Inner, string alias = null)
+		/// <param name="alias">
+		/// Represents the name of the related table. 
+		/// If you don't set an alias, one will be generated for you to ensure all columns have unique names, 
+		/// but you will not be able to use that alias to reference the link entity in other parts of the fetch XML.
+		/// The auto-generated aliases use the pattern {LogicalName}+{N}, where N is the sequential number 
+		/// of the link-entity in the fetch XML starting from 1.
+		/// </param>
+		/// <param name="intersect">
+		/// Indicates that the link-entity is used to join tables and not return any columns, typically for a many-to-many relationship. 
+		/// The existence of this attribute doesn't change the query execution. 
+		/// You might add this attribute to your link-entity when you join a table but don't include any attribute elements to show that this is intentional.
+		/// </param>
+		/// <returns>The link entity just created</returns>
+		public LinkEntityExpression AddLink(string entityName, string from, string to, LinkType linkType = LinkType.Inner, string alias = null, bool intersect = false)
 		{
-			var link = new LinkEntityExpression(entityName, from, to, linkType, alias);
+			var link = new LinkEntityExpression(entityName, from, to, linkType, alias, intersect);
 			if (LinkEntities == null) LinkEntities = new List<LinkEntityExpression>();
 			LinkEntities.Add(link);
 			return link;
@@ -297,29 +292,6 @@ namespace Greg.FetchXmlDom.Model
 					order.WriteXml(writer);
 				}
 			}
-		}
-
-
-
-
-		public virtual IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-		{
-			var validationResults = new List<ValidationResult>();
-			this.ColumnSet.TryValidateList(nameof(ColumnSet), validationContext, validationResults);
-
-			if (this.Filter != null)
-			{
-				var partialValidationResults = new List<ValidationResult>();
-				if (!Validator.TryValidateObject(this.Filter, new ValidationContext(this.Filter, validationContext.Items), partialValidationResults, true))
-				{
-					validationResults.AddChildren(partialValidationResults, "Filter");
-				}
-			}
-
-			this.LinkEntities.TryValidateList(nameof(LinkEntities), validationContext, validationResults);
-			this.Order.TryValidateList(nameof(Order), validationContext, validationResults);
-
-			return validationResults;
 		}
 	}
 }

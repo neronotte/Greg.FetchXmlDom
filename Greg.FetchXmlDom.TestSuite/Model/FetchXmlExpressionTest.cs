@@ -8,23 +8,27 @@ namespace Greg.FetchXmlDom.Model
 		[Test]
 		public void ToString_Empty_ShouldWork()
 		{
-			var fetch = new FetchXmlExpression();
+			var fetch = new FetchXmlExpression("account");
 			var result = fetch.ToString();
 
-			result.Should().Be("<fetch />");
+			result.Should().Be(@"<fetch>
+  <entity name='account' />
+</fetch>".Replace("'", "\""));
 		}
 
 
 		[Test]
 		public void ToString_WithTop_ShouldWork()
 		{
-			var fetch = new FetchXmlExpression
+			var fetch = new FetchXmlExpression("account")
 			{
 				Top = 10
 			};
 			var result = fetch.ToString();
 
-			result.Should().Be("<fetch top=\"10\" />");
+			result.Should().Be(@"<fetch top='10'>
+  <entity name='account' />
+</fetch>".Replace("'", "\""));
 		}
 
 		[Test]
@@ -99,6 +103,24 @@ namespace Greg.FetchXmlDom.Model
     <link-entity name='account' from='accountid' to='parentcustomerid' link-type='outer' alias='acct'>
       <attribute name='name' />
     </link-entity>
+  </entity>
+</fetch>".Replace("'", "\""));
+		}
+
+
+		[Test]
+		public void ToString_WithMediumComplexQuery03_ShouldWork()
+		{
+			var fetch = new FetchXmlExpression("contact", aggregate:true);
+			fetch.AddGroupColumn("lastname");
+			fetch.AddAggregateColumn("contactid", AggregateFunction.Count, "Count");
+
+			var result = fetch.ToString();
+
+			result.Should().Be(@"<fetch aggregate='true'>
+  <entity name='contact'>
+    <attribute name='lastname' alias='lastname' groupby='true' />
+    <attribute name='contactid' alias='Count' aggregate='count' />
   </entity>
 </fetch>".Replace("'", "\""));
 		}
